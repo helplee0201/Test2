@@ -5,6 +5,7 @@ import network_graph_cycles as ngc
 from streamlit.components.v1 import html
 import pandas as pd
 import random
+from pyvis.network import Network  # 추가된 임포트 문
 
 # Custom CSS for wider, modern dashboard styling with adjusted font sizes and centered title
 st.markdown("""
@@ -420,3 +421,4 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.write("사기거래 징후가 보이지 않습니다.")
             else:
                 st.info("'매출매입 상세' 또는 '사기거래 분석'을 클릭하여 상세를 확인하세요.")
+
