@@ -6,7 +6,7 @@ from streamlit.components.v1 import html
 import pandas as pd
 import random
 
-# Custom CSS for wider, modern dashboard styling
+# Custom CSS for wider, modern dashboard styling with adjusted font sizes and centered title
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
@@ -24,8 +24,18 @@ st.markdown("""
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         padding: 30px;
     }
-    h1, h2, h3 {
+    h1 {
         color: #2c3e50;
+        font-size: 2.5em;
+        text-align: center; /* Center align the main title */
+    }
+    h2 {
+        color: #2c3e50;
+        font-size: 1.8em;
+    }
+    h3 {
+        color: #2c3e50;
+        font-size: 1.4em;
     }
     .stSelectbox, .stTextInput, .stMultiselect {
         background-color: #f8f9fa;
@@ -71,26 +81,20 @@ st.markdown("""
         border-radius: 8px;
         padding: 20px;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        border-bottom: 2px solid #3498db;
-    }
-    .stTabs [data-baseweb="tab"] {
-        font-weight: 500;
-        color: #2c3e50;
-        padding: 12px 24px;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #3498db;
-        border-bottom: 2px solid #3498db;
-    }
     .stCheckbox {
         margin: 6px 0;
     }
+    .fraud-warning {
+        color: #e74c3c;
+        font-weight: bold;
+        font-size: 1.2em;
+        background-color: #ffe6e6;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #e74c3c;
+    }
 </style>
 """, unsafe_allow_html=True)
-
-# Debug: Check PARSED_DATA length
-st.write(f"Debug: PARSED_DATA length: {len(PARSED_DATA)}")
 
 # Extract unique seller (no_biz) and buyer (no_bisocial) data
 insured_dict = {entry['no_biz']: entry['nm_krcom'] for entry in PARSED_DATA}
@@ -104,173 +108,213 @@ contractor_options = sorted([f"{num} - {name} (구매자)" for num, name in cont
 st.set_page_config(layout="wide")
 
 # App title
-st.title("Insurance Network Dashboard")
+st.title("사기거래관련 웹페이지 작동 순서 및 필요한 기능")
 
-# Use tabs for organization
-tab1, tab2 = st.tabs(["📋 Pair Management", "📊 Network Analysis"])
+# Pair Management Section
+st.header("1. 피보험자-계약자 입력하는 영역")
 
-with tab1:
-    st.header("Manage Seller-Buyer Pairs")
+# Add New Pair Section
+st.subheader("1) 셀렉트박스로 사업자번호를 조회-선택하는 기능 제공")
+col_select1, col_select2 = st.columns([1, 1])
 
-    # Add New Pair Section
-    st.subheader("Add New Pair")
-    col_select1, col_select2 = st.columns([1, 1])
-    
-    with col_select1:
-        insured_selection = st.selectbox(
-            "Select Seller (판매자)",
-            options=["Select an option"] + insured_options,
-            key="insured_select"
-        )
-    
-    with col_select2:
-        contractor_selection = st.selectbox(
-            "Select Buyer (구매자)",
-            options=["Select an option"] + contractor_options,
-            key="contractor_select"
-        )
-    
-    # Initialize session state for pairs
-    if 'pairs' not in st.session_state:
-        st.session_state.pairs = []
-    if 'delete_checks' not in st.session_state:
-        st.session_state.delete_checks = []
-
-    if st.button("Add Pair", key="add_pair"):
-        if insured_selection != "Select an option" and contractor_selection != "Select an option":
-            insured_num = insured_selection.split(' - ')[0]
-            contractor_num = contractor_selection.split(' - ')[0]
-            st.session_state.pairs.append((insured_num, contractor_num))
-            st.session_state.delete_checks.append(False)
-            st.success("Pair added successfully!")
-            st.rerun()
-
-    # Selected Pairs Section (on a new row)
-    st.subheader("Selected Pairs")
-    if st.session_state.pairs:
-        # Ensure delete_checks matches pairs length
-        if len(st.session_state.delete_checks) != len(st.session_state.pairs):
-            st.session_state.delete_checks = [False] * len(st.session_state.pairs)
-
-        # Create table data
-        table_data = []
-        for i, (seller, buyer) in enumerate(st.session_state.pairs):
-            with st.container():
-                cols = st.columns([1, 3, 3])
-                with cols[0]:
-                    st.session_state.delete_checks[i] = st.checkbox("", key=f"delete_{i}", value=st.session_state.delete_checks[i])
-                with cols[1]:
-                    st.write(f"{seller} - {insured_dict.get(seller, 'Unknown')} (판매자)")
-                with cols[2]:
-                    st.write(f"{buyer} - {contractor_dict.get(buyer, 'Unknown')} (구매자)")
-                table_data.append({
-                    "Delete": st.session_state.delete_checks[i],
-                    "Seller": f"{seller} - {insured_dict.get(seller, 'Unknown')} (판매자)",
-                    "Buyer": f"{buyer} - {contractor_dict.get(buyer, 'Unknown')} (구매자)"
-                })
-
-        # Delete button
-        if st.button("Delete Selected Pairs", key="delete_selected"):
-            new_pairs = [pair for i, pair in enumerate(st.session_state.pairs) if not st.session_state.delete_checks[i]]
-            st.session_state.pairs = new_pairs
-            st.session_state.delete_checks = [False] * len(new_pairs)
-            st.success("Selected pairs deleted successfully!")
-            st.rerun()
-
-        # Display table
-        st.dataframe(
-            table_data,
-            use_container_width=True,
-            column_config={
-                "Delete": st.column_config.CheckboxColumn("Delete"),
-                "Seller": "Seller (판매자)",
-                "Buyer": "Buyer (구매자)"
-            }
-        )
-    else:
-        st.info("No pairs added yet.")
-
-with tab2:
-    st.header("Network Analysis")
-    cycle_lengths = st.multiselect(
-        "Select Cycle Lengths to Find",
-        options=[3, 4, 5, 6],
-        default=[3],
-        key="cycle_lengths"
+with col_select1:
+    insured_selections = st.multiselect(
+        "판매자 선택 (판매자)",
+        options=insured_options,
+        key="insured_select"
     )
-    
-    # Initialize session state for network analysis results
-    if 'network_run' not in st.session_state:
-        st.session_state.network_run = False
-    if 'htmls' not in st.session_state:
-        st.session_state.htmls = []
-    if 'show_fraud_analysis' not in st.session_state:
-        st.session_state.show_fraud_analysis = False
 
-    # Run network analysis
-    if st.button("Run Network Analysis", key="network_analysis"):
-        if st.session_state.pairs:
-            G = nx.DiGraph(st.session_state.pairs)  # Edges from no_biz (seller) to no_bisocial (buyer)
-            cycles = ngc.find_cycles(G, cycle_lengths)
-            st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
-            st.session_state.network_run = True
-            st.session_state.show_fraud_analysis = False  # Reset fraud analysis
-            st.rerun()
-        else:
-            st.warning("Please add transaction pairs to analyze.")
+with col_select2:
+    contractor_selections = st.multiselect(
+        "구매자 선택 (구매자)",
+        options=contractor_options,
+        key="contractor_select"
+    )
 
-    # Debug: Show pairs
-    st.write(f"Debug: Current pairs: {st.session_state.get('pairs', [])}")
+# Initialize session state for pairs
+if 'pairs' not in st.session_state:
+    st.session_state.pairs = []
+if 'delete_checks' not in st.session_state:
+    st.session_state.delete_checks = []
 
-    # Display subgraphs with fraud analysis details
-    if st.session_state.network_run and st.session_state.htmls:
-        for i, html_content in enumerate(st.session_state.htmls, 1):
-            st.subheader(f"Subgraph {i}")
-            col_graph, col_table = st.columns([3, 2])
-            with col_graph:
-                html(html_content, height=600, scrolling=True)
-            with col_table:
-                st.write("**Transaction Details**")
-                if st.button("사기거래 분석", key=f"fraud_analysis_{i}"):
-                    st.session_state.show_fraud_analysis = not st.session_state.show_fraud_analysis
+if st.button("사업자번호 조회", key="add_pair"):
+    if insured_selections and contractor_selections:
+        # Create all possible pairs from selected sellers and buyers
+        new_pairs = []
+        for insured_selection in insured_selections:
+            for contractor_selection in contractor_selections:
+                insured_num = insured_selection.split(' - ')[0]
+                contractor_num = contractor_selection.split(' - ')[0]
+                new_pairs.append((insured_num, contractor_num))
+        # Add new pairs to session state
+        st.session_state.pairs.extend(new_pairs)
+        st.session_state.delete_checks.extend([False] * len(new_pairs))
+        st.success(f"{len(new_pairs)} 쌍이 추가되었습니다!")
+        st.rerun()
+    else:
+        st.warning("판매자와 구매자를 하나 이상 선택해주세요.")
+
+# Selected Pairs Section
+st.subheader("2) 1번에서 선택한 사업자번호 조합을 표로 보여줌")
+if st.session_state.pairs:
+    # Ensure delete_checks matches pairs length
+    if len(st.session_state.delete_checks) != len(st.session_state.pairs):
+        st.session_state.delete_checks = [False] * len(st.session_state.pairs)
+
+    # Create table data with checkboxes
+    table_data = []
+    for i, (seller, buyer) in enumerate(st.session_state.pairs):
+        table_data.append({
+            "삭제": st.session_state.delete_checks[i],
+            "판매자": f"{seller} - {insured_dict.get(seller, '알 수 없음')} (판매자)",
+            "구매자": f"{buyer} - {contractor_dict.get(buyer, '알 수 없음')} (구매자)"
+        })
+
+    # Display table with integrated checkboxes
+    df = pd.DataFrame(table_data)
+    st.dataframe(
+        df,
+        use_container_width=True,
+        column_config={
+            "삭제": st.column_config.CheckboxColumn(
+                "삭제",
+                default=False,
+                help="삭제할 쌍을 선택하세요"
+            ),
+            "판매자": "판매자",
+            "구매자": "구매자"
+        }
+    )
+
+    # Update session state based on table checkbox changes
+    for i, row in df.iterrows():
+        st.session_state.delete_checks[i] = row["삭제"]
+
+    # Delete button
+    if st.button("선택된 쌍 삭제", key="delete_selected"):
+        new_pairs = [pair for i, pair in enumerate(st.session_state.pairs) if not st.session_state.delete_checks[i]]
+        st.session_state.pairs = new_pairs
+        st.session_state.delete_checks = [False] * len(new_pairs)
+        st.success("선택된 쌍이 삭제되었습니다!")
+        st.rerun()
+else:
+    st.info("아직 쌍이 추가되지 않았습니다.")
+
+# Network Analysis Section
+st.header("2. 네트워크 분석을 실행하는 영역")
+cycle_lengths = st.multiselect(
+    "찾을 사이클 길이 선택",
+    options=[3, 4, 5, 6],
+    default=[3],
+    key="cycle_lengths"
+)
+
+# Initialize session state for network analysis results
+if 'network_run' not in st.session_state:
+    st.session_state.network_run = False
+if 'htmls' not in st.session_state:
+    st.session_state.htmls = []
+if 'show_sales_details' not in st.session_state:
+    st.session_state.show_sales_details = [False] * 100  # Support multiple subgraphs
+if 'show_fraud_analysis' not in st.session_state:
+    st.session_state.show_fraud_analysis = [False] * 100  # Support multiple subgraphs
+
+# Run network analysis
+if st.button("네트워크 분석 실행", key="network_analysis"):
+    if st.session_state.pairs:
+        G = nx.DiGraph(st.session_state.pairs)  # Edges from no_biz (seller) to no_bisocial (buyer)
+        # Find all simple cycles and organize by length
+        all_cycles = list(nx.simple_cycles(G))
+        cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
+        st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
+        st.session_state.network_run = True
+        st.session_state.show_sales_details = [False] * len(st.session_state.htmls)
+        st.session_state.show_fraud_analysis = [False] * len(st.session_state.htmls)
+        st.rerun()
+    else:
+        st.warning("분석할 거래 쌍을 추가해주세요.")
+
+# Display subgraphs with fraud analysis details
+if st.session_state.network_run and st.session_state.htmls:
+    for i, html_content in enumerate(st.session_state.htmls, 1):
+        st.subheader(f"관계망 {i}")
+        col_graph, col_table = st.columns([3, 2])
+        with col_graph:
+            html(html_content, height=600, scrolling=True)
+        with col_table:
+            st.write("**거래 상세**")
+            col_buttons = st.columns(2)
+            with col_buttons[0]:
+                if st.button("매출매입 상세", key=f"sales_details_{i}"):
+                    st.session_state.show_sales_details[i-1] = not st.session_state.show_sales_details[i-1]
+                    st.session_state.show_fraud_analysis[i-1] = False
                     st.rerun()
-                if st.session_state.show_fraud_analysis and st.session_state.pairs:
-                    items = [
-                        "최근 2년간 해당 거래처와의 거래대금 결제 이력(회수) 여부 (판매자)",
-                        "최근 2년간 해당 거래처와의 거래대금 결제 이력(지급) 여부 (구매자)",
-                        "양사 대표자 동일(이름, 주민번호) 여부",
-                        "양사 대표자 가족 중복 포함 여부",
-                        "양사 대표자 종업원 포함 여부",
-                        "양사 동일 종업원 존재 여부",
-                        "회전거래 업체와 최근 2년간 거래 여부",
-                        "폭탄업체와 최근 2년간 거래 여부",
-                        "회전거래 업체여부",
-                        "계약자와 피보험자가 3개 이상인 경우 회전거래가 존재하는지 여부",
-                        "동일 세무대리인으로부터 기장한 이력이 확인되는 경우",
-                        "사업장 주소지 유사성이 확인되는 경우",
-                        "주주 구성의 동일성이 확인되는 경우",
-                        "중간거래상을 통한 거래가 확인되는 경우"
-                    ]
-                    values = [random.choice(['y', 'n']) for _ in items]
-                    df = pd.DataFrame({'Item': items, 'Value': values})
-                    st.dataframe(df, use_container_width=True)
-                    if 'y' in values:
-                        st.write("사기거래 징후가 보입니다.")
-                    else:
-                        st.write("사기거래 징후가 보이지 않습니다.")
-                else:
-                    st.info("Click '사기거래 분석' to view fraud analysis details.")
+            with col_buttons[1]:
+                if st.button("사기거래 분석", key=f"fraud_analysis_{i}"):
+                    st.session_state.show_fraud_analysis[i-1] = not st.session_state.show_fraud_analysis[i-1]
+                    st.session_state.show_sales_details[i-1] = False
+                    st.rerun()
 
-        # CSV downloads
-        if st.session_state.pairs:
+            # Get nodes in cycles of the desired length
             G = nx.DiGraph(st.session_state.pairs)
-            cycles = ngc.find_cycles(G, cycle_lengths)
-            csv_files = ngc.generate_csv(cycles, cycle_lengths)
-            for filename, csv_data in csv_files:
-                st.download_button(
-                    label=f"Download {filename}",
-                    data=csv_data,
-                    file_name=filename,
-                    mime="text/csv",
-                    key=f"download_{filename}"
-                )
+            all_cycles = list(nx.simple_cycles(G))
+            cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
+            subgraph_nodes = set()
+            # Use all pairs if no cycles are found
+            subgraph_pairs = st.session_state.pairs
+            # If cycles exist, filter pairs by cycle nodes
+            target_length = cycle_lengths[min(i-1, len(cycle_lengths)-1)] if cycle_lengths else None
+            if target_length in cycles and cycles[target_length]:
+                for cycle in cycles[target_length]:
+                    subgraph_nodes.update(cycle)
+                subgraph_pairs = [(seller, buyer) for seller, buyer in st.session_state.pairs 
+                                 if seller in subgraph_nodes or buyer in subgraph_nodes]
+            
+            if st.session_state.show_sales_details[i-1]:
+                # Retrieve PARSED_DATA entries matching the pairs
+                details_data = []
+                for seller, buyer in subgraph_pairs:
+                    for entry in PARSED_DATA:
+                        if entry['no_biz'] == seller and entry['no_bisocial'] == buyer:
+                            # Select specific fields
+                            details_data.append({
+                                '판매자 번호 (no_biz)': entry['no_biz'],
+                                '구매자 번호 (no_bisocial)': entry['no_bisocial'],
+                                '거래처명 (nm_trade)': entry.get('nm_trade', 'N/A'),
+                                '계정과목 (nm_acctit)': entry.get('nm_acctit', 'N/A'),
+                                '구분 (ty_gubn)': entry.get('ty_gubn', 'N/A'),
+                                '분개내역 (ct_bungae)': entry.get('ct_bungae', 'N/A')
+                            })
+                
+                if details_data:
+                    # Convert to DataFrame and display selected fields
+                    df = pd.DataFrame(details_data)
+                    st.dataframe(df, use_container_width=True)
+                else:
+                    st.info("해당 쌍에 대한 상세 데이터가 없습니다.")
+            elif st.session_state.show_fraud_analysis[i-1]:
+                items = [
+                    "최근 2년간 해당 거래처와의 거래대금 결제 이력(회수) 여부 (판매자)",
+                    "최근 2년간 해당 거래처와의 거래대금 결제 이력(지급) 여부 (구매자)",
+                    "양사 대표자 동일(이름, 주민번호) 여부",
+                    "양사 대표자 가족 중복 포함 여부",
+                    "양사 대표자 종업원 포함 여부",
+                    "양사 동일 종업원 존재 여부",
+                    "회전거래 업체와 최근 2년간 거래 여부",
+                    "폭탄업체와 최근 2년간 거래 여부",
+                    "회전거래 업체여부",
+                    "계약자와 피보험자가 3개 이상인 경우 회전거래가 존재하는지 여부",
+                    "동일 세무대리인으로부터 기장한 이력이 확인되는 경우",
+                    "사업장 주소지 유사성이 확인되는 경우",
+                    "주주 구성의 동일성이 확인되는 경우",
+                    "중간거래상을 통한 거래가 확인되는 경우"
+                ]
+                values = [random.choice(['y', 'n']) for _ in items]
+                df = pd.DataFrame({'항목': items, '해당 여부': values})
+                st.dataframe(df, use_container_width=True)
+                if 'y' in values:
+                    st.markdown('<p class="fraud-warning">사기거래 징후가 보입니다.</p>', unsafe_allow_html=True)
+                else:
+                    st.write("사기거래 징후가 보이지 않습니다.")
+            else:
+                st.info("'매출매입 상세' 또는 '사기거래 분석'을 클릭하여 상세를 확인하세요.")
