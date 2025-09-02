@@ -96,6 +96,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Parse the data with amounts
+df_parsed = pd.DataFrame(PARSED_DATA)
+df_parsed['mn_bungae'] = df_parsed['mn_bungae'].str.replace(',', '')
+df_parsed['amount'] = pd.to_numeric(df_parsed['mn_bungae'], errors='coerce').fillna(0)
+
 # Extract unique seller (no_biz) and buyer (no_bisocial) data
 insured_dict = {entry['no_biz']: entry['nm_krcom'] for entry in PARSED_DATA}
 contractor_dict = {entry['no_bisocial']: entry['nm_trade'] for entry in PARSED_DATA}
@@ -214,6 +219,8 @@ if 'network_run' not in st.session_state:
     st.session_state.network_run = False
 if 'htmls' not in st.session_state:
     st.session_state.htmls = []
+if 'overall_html' not in st.session_state:
+    st.session_state.overall_html = None
 if 'show_sales_details' not in st.session_state:
     st.session_state.show_sales_details = [False] * 100  # Support multiple subgraphs
 if 'show_fraud_analysis' not in st.session_state:
@@ -222,17 +229,112 @@ if 'show_fraud_analysis' not in st.session_state:
 # Run network analysis
 if st.button("네트워크 분석 실행", key="network_analysis"):
     if st.session_state.pairs:
+        # Original graph and subgraphs
         G = nx.DiGraph(st.session_state.pairs)  # Edges from no_biz (seller) to no_bisocial (buyer)
         # Find all simple cycles and organize by length
         all_cycles = list(nx.simple_cycles(G))
         cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
         st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
+
+        # Compute overall graph with top 5 sales/purchases
+        selected_sellers = set(s for s, b in st.session_state.pairs)
+        selected_buyers = set(b for s, b in st.session_state.pairs)
+        overall_G = nx.DiGraph()
+
+        # Add selected edges
+        for s, b in st.session_state.pairs:
+            overall_G.add_edge(s, b)
+
+        # Add top 5 buyers for each selected seller
+        for seller in selected_sellers:
+            buyer_sums = df_parsed[df_parsed['no_biz'] == seller].groupby('no_bisocial')['amount'].sum().nlargest(5)
+            for buyer in buyer_sums.index:
+                overall_G.add_edge(seller, buyer)
+
+        # Add top 5 sellers for each selected buyer
+        for buyer in selected_buyers:
+            seller_sums = df_parsed[df_parsed['no_bisocial'] == buyer].groupby('no_biz')['amount'].sum().nlargest(5)
+            for seller in seller_sums.index:
+                overall_G.add_edge(seller, buyer)
+
+        # Compute cycles for overall
+        all_cycles_overall = list(nx.simple_cycles(overall_G))
+        cycles_overall = {length: [cycle for cycle in all_cycles_overall if len(cycle) == length] for length in cycle_lengths}
+
+        # Draw overall graph (replicating draw_graph logic with num_subgraphs=1)
+        filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(overall_G)
+        subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else overall_G, num_subgraphs=1)
+        
+        if subgraphs and subgraphs[0].number_of_nodes() > 0:
+            net = Network(notebook=False, directed=True, height='600px', width='100%')
+            net.from_nx(subgraphs[0])
+            
+            # Update node labels with company names
+            for node in net.nodes:
+                node_id = node['id']
+                label = insured_dict.get(node_id, contractor_dict.get(node_id, node_id))
+                node['label'] = label
+                node['size'] = 30
+                node['font'] = {'size': 14}
+            
+            # Highlight length 3+ edges
+            for edge in net.edges:
+                u, v = edge['from'], edge['to']
+                if (u, v) in length_3_plus_edges:
+                    edge['color'] = 'red'
+                    edge['width'] = 3
+                else:
+                    edge['color'] = 'gray'
+                    edge['width'] = 1
+            
+            # Highlight cycles
+            colors = ['red', 'green', 'blue']
+            filtered_cycles = {}
+            for length in cycle_lengths:
+                filtered_cycles[length] = [c for c in cycles_overall[length] if all(node in subgraphs[0].nodes() for node in c)]
+            for j, length in enumerate(filtered_cycles):
+                for cycle in filtered_cycles[length]:
+                    if cycle:
+                        color = colors[j % len(colors)]
+                        for node_id in cycle:
+                            for node in net.nodes:
+                                if node['id'] == node_id:
+                                    node['color'] = color
+                                    break
+            
+            # Enable physics and arrows
+            net.set_options("""
+            var options = {
+              "physics": {
+                "enabled": true,
+                "barnesHut": {
+                  "gravitationalConstant": -3000,
+                  "springLength": 150
+                }
+              },
+              "edges": {
+                "arrows": {
+                  "to": { "enabled": true, "scaleFactor": 1 }
+                }
+              }
+            }
+            """)
+            
+            st.session_state.overall_html = net.generate_html()
+        else:
+            st.session_state.overall_html = "<p>전체 관계망에 노드가 없습니다.</p>"
+
         st.session_state.network_run = True
         st.session_state.show_sales_details = [False] * len(st.session_state.htmls)
         st.session_state.show_fraud_analysis = [False] * len(st.session_state.htmls)
         st.rerun()
     else:
         st.warning("분석할 거래 쌍을 추가해주세요.")
+
+# Display overall graph
+if st.session_state.network_run and st.session_state.overall_html:
+    st.subheader("전체 관계망")
+    html(st.session_state.overall_html, height=600, scrolling=True)
 
 # Display subgraphs with fraud analysis details
 if st.session_state.network_run and st.session_state.htmls:
