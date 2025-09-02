@@ -18,3 +18,4 @@ markdown-it-py
 rich
 pyvis.network
 html
+PARSED_DATA
