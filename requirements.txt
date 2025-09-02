@@ -7,3 +7,8 @@ matplotlib
 openpyxl
 plotly
 networkx
+random
+network_graph_cycles
+treamlit.components.v1
+community
+python-louvain
