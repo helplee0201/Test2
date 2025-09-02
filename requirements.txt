@@ -1,10 +1,1 @@
-streamlit
-networkx
-PARSED_DATA
-network_graph_cycles 
-html
-pandas
-random
-Network
-community  
-louvain
+streamlit==1.38.0 networkx==3.3 pandas==2.2.2 pyvis==0.3.2 python-louvain==0.16
