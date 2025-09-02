@@ -12,7 +12,6 @@ network_graph_cycles
 treamlit.components.v1
 community
 python-louvain
-pyvis
 pygments
 mdurl
 markdown-it-py
