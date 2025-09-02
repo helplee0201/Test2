@@ -16,3 +16,4 @@ pygments
 mdurl
 markdown-it-py
 rich
+pyvis.network
