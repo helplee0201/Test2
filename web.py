@@ -6,6 +6,7 @@ from streamlit.components.v1 import html
 import pandas as pd
 import random
 from pyvis.network import Network  # 추가된 임포트 문
+from collections import defaultdict
 
 # Custom CSS for wider, modern dashboard styling with adjusted font sizes and centered title
 st.markdown("""
@@ -246,17 +247,42 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         for s, b in st.session_state.pairs:
             overall_G.add_edge(s, b)
 
-        # Add top 5 buyers for each selected seller
+        # Label dict for arbitrary names
+        label_dict = {}
+        sales_counter = 1
+        purchase_counter = 1
+
+        # Track shared top nodes for coloring
+        shared_groups = defaultdict(list)  # top_node -> list of original nodes connected to it
+
+        # Add top 5 buyers for each selected seller (매출처)
         for seller in selected_sellers:
             buyer_sums = df_parsed[df_parsed['no_biz'] == seller].groupby('no_bisocial')['amount'].sum().nlargest(5)
             for buyer in buyer_sums.index:
                 overall_G.add_edge(seller, buyer)
+                shared_groups[buyer].append(seller)
+                if buyer not in insured_dict and buyer not in contractor_dict:
+                    label_dict[buyer] = f"매출{sales_counter}"
+                    sales_counter += 1
 
-        # Add top 5 sellers for each selected buyer
+        # Add top 5 sellers for each selected buyer (매입처)
         for buyer in selected_buyers:
             seller_sums = df_parsed[df_parsed['no_bisocial'] == buyer].groupby('no_biz')['amount'].sum().nlargest(5)
             for seller in seller_sums.index:
                 overall_G.add_edge(seller, buyer)
+                shared_groups[seller].append(buyer)
+                if seller not in insured_dict and seller not in contractor_dict:
+                    label_dict[seller] = f"매입{purchase_counter}"
+                    purchase_counter += 1
+
+        # Assign colors to shared nodes (shared if len >1)
+        shared_colors = {}
+        color_list = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF']  # red, green, blue, yellow, magenta, cyan
+        color_idx = 0
+        for node, originals in shared_groups.items():
+            if len(originals) > 1:  # shared
+                shared_colors[node] = color_list[color_idx % len(color_list)]
+                color_idx += 1
 
         # Compute cycles for overall
         all_cycles_overall = list(nx.simple_cycles(overall_G))
@@ -270,13 +296,16 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
             net = Network(notebook=False, directed=True, height='600px', width='100%')
             net.from_nx(subgraphs[0])
             
-            # Update node labels with company names
+            # Update node labels with company names or arbitrary
             for node in net.nodes:
                 node_id = node['id']
-                label = insured_dict.get(node_id, contractor_dict.get(node_id, node_id))
+                label = label_dict.get(node_id, insured_dict.get(node_id, contractor_dict.get(node_id, node_id)))
                 node['label'] = label
                 node['size'] = 30
                 node['font'] = {'size': 14}
+                # Apply shared color if applicable
+                if node_id in shared_colors:
+                    node['color'] = shared_colors[node_id]
             
             # Highlight length 3+ edges
             for edge in net.edges:
@@ -300,7 +329,8 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                         for node_id in cycle:
                             for node in net.nodes:
                                 if node['id'] == node_id:
-                                    node['color'] = color
+                                    if 'color' not in node:  # Avoid overwriting shared color
+                                        node['color'] = color
                                     break
             
             # Enable physics and arrows
@@ -421,4 +451,3 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.write("사기거래 징후가 보이지 않습니다.")
             else:
                 st.info("'매출매입 상세' 또는 '사기거래 분석'을 클릭하여 상세를 확인하세요.")
-
