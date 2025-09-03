@@ -8,15 +8,18 @@ import random
 from pyvis.network import Network
 from collections import defaultdict
 
-# Custom CSS for wider, modern dashboard styling with adjusted font sizes and centered title
+# Custom CSS for wider, modern dashboard styling with balanced typography
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
     body {
         font-family: 'Roboto', 'Noto Sans KR', sans-serif;
         background-color: #f4f7fa;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #2c3e50;
     }
     .stApp {
         max-width: 1400px;
@@ -28,32 +31,41 @@ st.markdown("""
     }
     h1 {
         color: #2c3e50;
-        font-size: 2.5em;
+        font-size: 2.8em;
+        font-weight: 700;
         text-align: center;
+        margin-bottom: 1.5em;
     }
     h2 {
         color: #2c3e50;
-        font-size: 1.8em;
+        font-size: 2.0em;
+        font-weight: 600;
+        margin-bottom: 1.2em;
     }
     h3 {
         color: #2c3e50;
-        font-size: 1.4em;
+        font-size: 1.6em;
+        font-weight: 500;
+        margin-bottom: 1em;
     }
     .stSelectbox, .stTextInput, .stMultiselect {
         background-color: #f8f9fa;
         border-radius: 5px;
         padding: 8px;
+        font-size: 1.0em;
     }
     .stButton>button {
-        background-color: #e74c3c;
+        background-color: #4fc3f7;
         color: white;
         border-radius: 5px;
-        padding: 12px 24px;
+        padding: 10px 20px;
         border: none;
+        font-size: 1.0em;
+        font-weight: 500;
         transition: background-color 0.2s;
     }
     .stButton>button:hover {
-        background-color: #c0392b;
+        background-color: #29b6f6;
     }
     .stDataFrame {
         border: 1px solid #e0e0e0;
@@ -63,16 +75,19 @@ st.markdown("""
     .stDataFrame table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 1.0em;
     }
     .stDataFrame th {
         background-color: #3498db;
         color: white;
-        padding: 14px;
+        padding: 12px;
         text-align: left;
+        font-weight: 500;
     }
     .stDataFrame td {
         padding: 12px;
         border-bottom: 1px solid #e0e0e0;
+        font-size: 1.0em;
     }
     .stDataFrame tr:hover {
         background-color: #f1f3f5;
@@ -82,6 +97,7 @@ st.markdown("""
         color: white;
         border-radius: 8px;
         padding: 20px;
+        font-size: 1.0em;
     }
     .stCheckbox {
         margin: 6px 0;
@@ -89,11 +105,15 @@ st.markdown("""
     .fraud-warning {
         color: #e74c3c;
         font-weight: bold;
-        font-size: 1.2em;
+        font-size: 1.1em;
         background-color: #ffe6e6;
         padding: 10px;
         border-radius: 5px;
         border: 1px solid #e74c3c;
+    }
+    .stMarkdown p {
+        font-size: 1.0em;
+        line-height: 1.5;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -277,7 +297,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                     edge['width'] = 1
             
             # Highlight cycles
-            colors = ['red', 'green', 'blue']
+            colors = ['pink', 'lime', 'cyan']
             filtered_cycles = {}
             for length in cycle_lengths:
                 filtered_cycles[length] = [c for c in cycles_overall[length] if all(node in subgraphs[0].nodes() for node in c)]
@@ -525,7 +545,11 @@ if st.session_state.network_run and st.session_state.htmls:
                     "주주 구성의 동일성이 확인되는 경우",
                     "중간거래상을 통한 거래가 확인되는 경우"
                 ]
-                values = [random.choice(['y', 'n']) for _ in items]
+                # For 관계망3 (i=3), always show "사기거래 징후가 보이지 않습니다"
+                if i == 3:
+                    values = ['n'] * len(items)
+                else:
+                    values = [random.choice(['y', 'n']) for _ in items]
                 df = pd.DataFrame({'항목': items, '해당 여부': values})
                 st.dataframe(df, use_container_width=True)
                 if 'y' in values:
