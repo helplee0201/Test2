@@ -107,13 +107,13 @@ st.markdown("""
         margin: 8px 0;
     }
     .fraud-warning {
-        color: #dc2626;
+        color: #3b82f6;
         font-weight: 600;
         font-size: 1.1em;
-        background-color: rgba(254, 226, 226, 0.9);
+        background-color: rgba(147, 197, 253, 0.7);
         padding: 12px;
         border-radius: 8px;
-        border: 1px solid #dc2626;
+        border: 1px solid #3b82f6;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
@@ -138,6 +138,10 @@ st.markdown("""
         padding: 16px;
         background-color: #ffffff;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    .graph-container:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -295,8 +299,10 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         all_cycles_overall = list(nx.simple_cycles(overall_G))
         cycles_overall = {length: [cycle for cycle in all_cycles_overall if len(cycle) == length] for length in cycle_lengths}
 
-        # Draw overall graph
+        # Filter the overall graph
         filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(overall_G)
+
+        # Draw overall graph
         subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else overall_G, num_subgraphs=1)
         
         if subgraphs and subgraphs[0].number_of_nodes() > 0:
@@ -358,12 +364,8 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         else:
             st.session_state.overall_html = "<p>전체 관계망에 노드가 없습니다.</p>"
 
-        # Create extended graph with arbitrary nodes
-        extended_overall_G = nx.DiGraph()
-
-        # Add original edges
-        for s, b in st.session_state.pairs:
-            extended_overall_G.add_edge(s, b)
+        # Create extended graph based on filtered overall graph
+        extended_overall_G = filtered_graph.copy() if len(filtered_graph.nodes()) > 0 else overall_G.copy()
 
         # Label dict for arbitrary names
         label_dict = {}
@@ -375,7 +377,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 arbitrary_buyer = f"arbitrary_buyer_{seller}_{i}"
                 extended_overall_G.add_edge(seller, arbitrary_buyer)
                 shared_groups[arbitrary_buyer].append(seller)
-                label_dict[arbitrary_buyer] = f"매출{i}"
+                label_dict[arbitrary_buyer] = f"매출처{i}"
 
         # Add 5 arbitrary sellers (purchases) for each selected buyer
         for buyer in selected_buyers:
@@ -383,7 +385,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 arbitrary_seller = f"arbitrary_seller_{buyer}_{i}"
                 extended_overall_G.add_edge(arbitrary_seller, buyer)
                 shared_groups[arbitrary_seller].append(buyer)
-                label_dict[arbitrary_seller] = f"매입{i}"
+                label_dict[arbitrary_seller] = f"매입처{i}"
 
         # Assign colors to shared nodes (if shared across multiple originals)
         shared_colors = {}
@@ -399,12 +401,12 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         cycles_extended = {length: [cycle for cycle in all_cycles_extended if len(cycle) == length] for length in cycle_lengths}
 
         # Draw extended overall graph
-        filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(extended_overall_G)
-        subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else extended_overall_G, num_subgraphs=1)
+        filtered_graph_ext, length_3_plus_edges_ext = ngc.filter_paths_of_length_3_or_more(extended_overall_G)
+        subgraphs_ext = ngc.split_into_subgraphs(filtered_graph_ext if len(filtered_graph_ext.nodes()) > 0 else extended_overall_G, num_subgraphs=1)
         
-        if subgraphs and subgraphs[0].number_of_nodes() > 0:
+        if subgraphs_ext and subgraphs_ext[0].number_of_nodes() > 0:
             net = Network(notebook=False, directed=True, height='600px', width='100%')
-            net.from_nx(subgraphs[0])
+            net.from_nx(subgraphs_ext[0])
             
             # Update node labels with company names or arbitrary
             for node in net.nodes:
@@ -419,7 +421,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
             # Highlight length 3+ edges
             for edge in net.edges:
                 u, v = edge['from'], edge['to']
-                if (u, v) in length_3_plus_edges:
+                if (u, v) in length_3_plus_edges_ext:
                     edge['color'] = '#dc2626'
                     edge['width'] = 3
                 else:
@@ -430,7 +432,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
             colors = ['#f472b6', '#a3e635', '#22d3ee']
             filtered_cycles = {}
             for length in cycle_lengths:
-                filtered_cycles[length] = [c for c in cycles_extended[length] if all(node in subgraphs[0].nodes() for node in c)]
+                filtered_cycles[length] = [c for c in cycles_extended[length] if all(node in subgraphs_ext[0].nodes() for node in c)]
             for j, length in enumerate(filtered_cycles):
                 for cycle in filtered_cycles[length]:
                     if cycle:
