@@ -187,7 +187,7 @@ st.title("사기거래 분석 대시보드")
 st.header("피보험자-계약자 입력")
 
 # Add New Pair Section
-st.subheader("사업자번호 조회 및 선택")
+st.subheader("조회를 원하는 사업자번호를 입력하세요")
 col_select1, col_select2 = st.columns([1, 1])
 
 with col_select1:
@@ -594,3 +594,4 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
+
