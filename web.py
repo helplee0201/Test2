@@ -183,11 +183,11 @@ st.set_page_config(layout="wide")
 # App title
 st.title("사기거래 탐지 프로세스")
 
-# # Pair Management Section
-# st.header("피보험자-계약자 입력")
+# Pair Management Section
+st.header("")
 
-# # Add New Pair Section
-# st.subheader("조회를 원하는 사업자번호를 입력하세요")
+# Add New Pair Section
+st.subheader("")
 col_select1, col_select2 = st.columns([1, 1])
 
 with col_select1:
@@ -227,8 +227,8 @@ if st.button("사업자번호 추가", key="add_pair"):
     else:
         st.warning("판매자와 구매자를 하나 이상 선택해주세요.")
 
-# Selected Pairs Section
-# st.subheader("선택된 사업자번호 조합")
+Selected Pairs Section
+st.subheader("")
 if st.session_state.pairs:
     # Ensure delete_checks matches pairs length
     if len(st.session_state.delete_checks) != len(st.session_state.pairs):
@@ -273,8 +273,8 @@ if st.session_state.pairs:
 else:
     st.info("아직 쌍이 추가되지 않았습니다.")
 
-# Network Analysis Section
-# st.header("네트워크 분석을 실행하는 영역")
+Network Analysis Section
+st.header("")
 cycle_lengths = st.multiselect(
     "찾을 사이클 길이 선택",
     options=[3, 4, 5, 6],
@@ -594,6 +594,7 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
+
 
 
 
