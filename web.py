@@ -5,101 +5,142 @@ import network_graph_cycles as ngc
 from streamlit.components.v1 import html
 import pandas as pd
 import random
+from pyvis.network import Network
+from collections import defaultdict
 
-# Custom CSS for wider, modern dashboard styling with adjusted font sizes and centered title
+# Custom CSS for modern, sleek UI/UX
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
     body {
-        font-family: 'Roboto', 'Noto Sans KR', sans-serif;
-        background-color: #f4f7fa;
+        font-family: 'Inter', 'Noto Sans KR', sans-serif;
+        background-color: #f9fafb;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #1f2937;
     }
     .stApp {
-        max-width: 1400px;
+        max-width: 1440px;
         margin: 0 auto;
         background-color: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+        padding: 40px;
     }
     h1 {
-        color: #2c3e50;
-        font-size: 2.5em;
-        text-align: center; /* Center align the main title */
+        color: #1f2937;
+        font-size: 2.8em;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 1.5em;
     }
     h2 {
-        color: #2c3e50;
-        font-size: 1.8em;
+        color: #1f2937;
+        font-size: 2.0em;
+        font-weight: 600;
+        margin-bottom: 1.2em;
     }
     h3 {
-        color: #2c3e50;
-        font-size: 1.4em;
+        color: #1f2937;
+        font-size: 1.6em;
+        font-weight: 500;
+        margin-bottom: 1em;
     }
     .stSelectbox, .stTextInput, .stMultiselect {
-        background-color: #f8f9fa;
-        border-radius: 5px;
-        padding: 8px;
+        background-color: #f8fafc;
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 1.0em;
+        border: 1px solid #e2e8f0;
     }
     .stButton>button {
-        background-color: #e74c3c; /* Red color for fraud analysis button */
+        background: linear-gradient(to right, #60a5fa, #3b82f6);
         color: white;
-        border-radius: 5px;
+        border-radius: 8px;
         padding: 12px 24px;
         border: none;
-        transition: background-color 0.2s;
+        font-size: 1.0em;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background-color: #c0392b; /* Darker red on hover */
+        background: linear-gradient(to right, #3b82f6, #2563eb);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
     }
     .stDataFrame {
-        border: 1px solid #e0e0e0;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
         overflow: hidden;
+        background-color: #ffffff;
     }
     .stDataFrame table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 1.0em;
     }
     .stDataFrame th {
-        background-color: #3498db;
+        background: linear-gradient(to right, #3b82f6, #60a5fa);
         color: white;
         padding: 14px;
         text-align: left;
+        font-weight: 500;
     }
     .stDataFrame td {
-        padding: 12px;
-        border-bottom: 1px solid #e0e0e0;
+        padding: 14px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 1.0em;
     }
     .stDataFrame tr:hover {
-        background-color: #f1f3f5;
+        background-color: #f1f5f9;
     }
     .sidebar .sidebar-content {
-        background-color: #2c3e50;
+        background-color: #1f2937;
         color: white;
         border-radius: 8px;
-        padding: 20px;
+        padding: 24px;
+        font-size: 1.0em;
     }
     .stCheckbox {
-        margin: 6px 0;
+        margin: 8px 0;
     }
     .fraud-warning {
-        color: #e74c3c;
-        font-weight: bold;
-        font-size: 1.2em;
-        background-color: #ffe6e6;
-        padding: 10px;
-        border-radius: 5px;
-        border: 1px solid #e74c3c;
+        color: #dc2626;
+        font-weight: 600;
+        font-size: 1.1em;
+        background-color: rgba(254, 226, 226, 0.9);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #dc2626;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .no-fraud {
+        color: #16a34a;
+        font-weight: 600;
+        font-size: 1.1em;
+        background-color: rgba(220, 252, 231, 0.9);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #16a34a;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .stMarkdown p {
+        font-size: 1.0em;
+        line-height: 1.6;
+    }
+    .graph-container {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 </style>
 """, unsafe_allow_html=True)
-
-# Parse the data with amounts
-df_parsed = pd.DataFrame(PARSED_DATA)
-df_parsed['mn_bungae'] = df_parsed['mn_bungae'].str.replace(',', '')
-df_parsed['amount'] = pd.to_numeric(df_parsed['mn_bungae'], errors='coerce').fillna(0)
 
 # Extract unique seller (no_biz) and buyer (no_bisocial) data
 insured_dict = {entry['no_biz']: entry['nm_krcom'] for entry in PARSED_DATA}
@@ -113,27 +154,29 @@ contractor_options = sorted([f"{num} - {name} (구매자)" for num, name in cont
 st.set_page_config(layout="wide")
 
 # App title
-st.title("사기거래관련 웹페이지 작동 순서 및 필요한 기능")
+st.title("사기거래 분석 대시보드")
 
 # Pair Management Section
-st.header("1. 피보험자-계약자 입력하는 영역")
+st.header("피보험자-계약자 입력")
 
 # Add New Pair Section
-st.subheader("1) 셀렉트박스로 사업자번호를 조회-선택하는 기능 제공")
+st.subheader("사업자번호 조회 및 선택")
 col_select1, col_select2 = st.columns([1, 1])
 
 with col_select1:
     insured_selections = st.multiselect(
-        "판매자 선택 (판매자)",
+        "판매자 선택",
         options=insured_options,
-        key="insured_select"
+        key="insured_select",
+        help="판매자(피보험자)를 선택하세요."
     )
 
 with col_select2:
     contractor_selections = st.multiselect(
-        "구매자 선택 (구매자)",
+        "구매자 선택",
         options=contractor_options,
-        key="contractor_select"
+        key="contractor_select",
+        help="구매자(계약자)를 선택하세요."
     )
 
 # Initialize session state for pairs
@@ -142,7 +185,7 @@ if 'pairs' not in st.session_state:
 if 'delete_checks' not in st.session_state:
     st.session_state.delete_checks = []
 
-if st.button("사업자번호 조회", key="add_pair"):
+if st.button("사업자번호 추가", key="add_pair"):
     if insured_selections and contractor_selections:
         # Create all possible pairs from selected sellers and buyers
         new_pairs = []
@@ -154,13 +197,13 @@ if st.button("사업자번호 조회", key="add_pair"):
         # Add new pairs to session state
         st.session_state.pairs.extend(new_pairs)
         st.session_state.delete_checks.extend([False] * len(new_pairs))
-        st.success(f"{len(new_pairs)} 쌍이 추가되었습니다!")
+        st.success(f"{len(new_pairs)}개의 쌍이 추가되었습니다!")
         st.rerun()
     else:
         st.warning("판매자와 구매자를 하나 이상 선택해주세요.")
 
 # Selected Pairs Section
-st.subheader("2) 1번에서 선택한 사업자번호 조합을 표로 보여줌")
+st.subheader("선택된 사업자번호 조합")
 if st.session_state.pairs:
     # Ensure delete_checks matches pairs length
     if len(st.session_state.delete_checks) != len(st.session_state.pairs):
@@ -171,8 +214,8 @@ if st.session_state.pairs:
     for i, (seller, buyer) in enumerate(st.session_state.pairs):
         table_data.append({
             "삭제": st.session_state.delete_checks[i],
-            "판매자": f"{seller} - {insured_dict.get(seller, '알 수 없음')} (판매자)",
-            "구매자": f"{buyer} - {contractor_dict.get(buyer, '알 수 없음')} (구매자)"
+            "판매자": f"{seller} - {insured_dict.get(seller, '알 수 없음')}",
+            "구매자": f"{buyer} - {contractor_dict.get(buyer, '알 수 없음')}"
         })
 
     # Display table with integrated checkboxes
@@ -186,8 +229,8 @@ if st.session_state.pairs:
                 default=False,
                 help="삭제할 쌍을 선택하세요"
             ),
-            "판매자": "판매자",
-            "구매자": "구매자"
+            "판매자": st.column_config.TextColumn("판매자"),
+            "구매자": st.column_config.TextColumn("구매자")
         }
     )
 
@@ -203,15 +246,16 @@ if st.session_state.pairs:
         st.success("선택된 쌍이 삭제되었습니다!")
         st.rerun()
 else:
-    st.info("아직 쌍이 추가되지 않았습니다.")
+    st.info("아직 추가된 쌍이 없습니다.")
 
 # Network Analysis Section
-st.header("2. 네트워크 분석을 실행하는 영역")
+st.header("네트워크 분석")
 cycle_lengths = st.multiselect(
     "찾을 사이클 길이 선택",
     options=[3, 4, 5, 6],
     default=[3],
-    key="cycle_lengths"
+    key="cycle_lengths",
+    help="분석할 사이클 길이를 선택하세요."
 )
 
 # Initialize session state for network analysis results
@@ -221,6 +265,8 @@ if 'htmls' not in st.session_state:
     st.session_state.htmls = []
 if 'overall_html' not in st.session_state:
     st.session_state.overall_html = None
+if 'extended_overall_html' not in st.session_state:
+    st.session_state.extended_overall_html = None
 if 'show_sales_details' not in st.session_state:
     st.session_state.show_sales_details = [False] * 100  # Support multiple subgraphs
 if 'show_fraud_analysis' not in st.session_state:
@@ -236,7 +282,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
         st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
 
-        # Compute overall graph with top 5 sales/purchases
+        # Compute overall graph (without extended nodes)
         selected_sellers = set(s for s, b in st.session_state.pairs)
         selected_buyers = set(b for s, b in st.session_state.pairs)
         overall_G = nx.DiGraph()
@@ -245,23 +291,11 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         for s, b in st.session_state.pairs:
             overall_G.add_edge(s, b)
 
-        # Add top 5 buyers for each selected seller
-        for seller in selected_sellers:
-            buyer_sums = df_parsed[df_parsed['no_biz'] == seller].groupby('no_bisocial')['amount'].sum().nlargest(5)
-            for buyer in buyer_sums.index:
-                overall_G.add_edge(seller, buyer)
-
-        # Add top 5 sellers for each selected buyer
-        for buyer in selected_buyers:
-            seller_sums = df_parsed[df_parsed['no_bisocial'] == buyer].groupby('no_biz')['amount'].sum().nlargest(5)
-            for seller in seller_sums.index:
-                overall_G.add_edge(seller, buyer)
-
         # Compute cycles for overall
         all_cycles_overall = list(nx.simple_cycles(overall_G))
         cycles_overall = {length: [cycle for cycle in all_cycles_overall if len(cycle) == length] for length in cycle_lengths}
 
-        # Draw overall graph (replicating draw_graph logic with num_subgraphs=1)
+        # Draw overall graph
         filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(overall_G)
         subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else overall_G, num_subgraphs=1)
         
@@ -281,14 +315,14 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
             for edge in net.edges:
                 u, v = edge['from'], edge['to']
                 if (u, v) in length_3_plus_edges:
-                    edge['color'] = 'red'
+                    edge['color'] = '#dc2626'
                     edge['width'] = 3
                 else:
-                    edge['color'] = 'gray'
+                    edge['color'] = '#6b7280'
                     edge['width'] = 1
             
             # Highlight cycles
-            colors = ['red', 'green', 'blue']
+            colors = ['#f472b6', '#a3e635', '#22d3ee']
             filtered_cycles = {}
             for length in cycle_lengths:
                 filtered_cycles[length] = [c for c in cycles_overall[length] if all(node in subgraphs[0].nodes() for node in c)]
@@ -324,6 +358,111 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         else:
             st.session_state.overall_html = "<p>전체 관계망에 노드가 없습니다.</p>"
 
+        # Create extended graph with arbitrary nodes
+        extended_overall_G = nx.DiGraph()
+
+        # Add original edges
+        for s, b in st.session_state.pairs:
+            extended_overall_G.add_edge(s, b)
+
+        # Label dict for arbitrary names
+        label_dict = {}
+        shared_groups = defaultdict(list)  # top_node -> list of original nodes
+
+        # Add 5 arbitrary buyers (sales) for each selected seller
+        for seller in selected_sellers:
+            for i in range(1, 6):
+                arbitrary_buyer = f"arbitrary_buyer_{seller}_{i}"
+                extended_overall_G.add_edge(seller, arbitrary_buyer)
+                shared_groups[arbitrary_buyer].append(seller)
+                label_dict[arbitrary_buyer] = f"매출{i}"
+
+        # Add 5 arbitrary sellers (purchases) for each selected buyer
+        for buyer in selected_buyers:
+            for i in range(1, 6):
+                arbitrary_seller = f"arbitrary_seller_{buyer}_{i}"
+                extended_overall_G.add_edge(arbitrary_seller, buyer)
+                shared_groups[arbitrary_seller].append(buyer)
+                label_dict[arbitrary_seller] = f"매입{i}"
+
+        # Assign colors to shared nodes (if shared across multiple originals)
+        shared_colors = {}
+        color_list = ['#ef4444', '#22c55e', '#3b82f6', '#eab308', '#d946ef', '#14b8a6', '#f97316', '#8b5cf6']
+        color_idx = 0
+        for node, originals in shared_groups.items():
+            if len(originals) > 1:
+                shared_colors[node] = color_list[color_idx % len(color_list)]
+                color_idx += 1
+
+        # Compute cycles for extended overall
+        all_cycles_extended = list(nx.simple_cycles(extended_overall_G))
+        cycles_extended = {length: [cycle for cycle in all_cycles_extended if len(cycle) == length] for length in cycle_lengths}
+
+        # Draw extended overall graph
+        filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(extended_overall_G)
+        subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else extended_overall_G, num_subgraphs=1)
+        
+        if subgraphs and subgraphs[0].number_of_nodes() > 0:
+            net = Network(notebook=False, directed=True, height='600px', width='100%')
+            net.from_nx(subgraphs[0])
+            
+            # Update node labels with company names or arbitrary
+            for node in net.nodes:
+                node_id = node['id']
+                label = label_dict.get(node_id, insured_dict.get(node_id, contractor_dict.get(node_id, node_id)))
+                node['label'] = label
+                node['size'] = 30
+                node['font'] = {'size': 14}
+                if node_id in shared_colors:
+                    node['color'] = shared_colors[node_id]
+            
+            # Highlight length 3+ edges
+            for edge in net.edges:
+                u, v = edge['from'], edge['to']
+                if (u, v) in length_3_plus_edges:
+                    edge['color'] = '#dc2626'
+                    edge['width'] = 3
+                else:
+                    edge['color'] = '#6b7280'
+                    edge['width'] = 1
+            
+            # Highlight cycles (apply only if no shared color)
+            colors = ['#f472b6', '#a3e635', '#22d3ee']
+            filtered_cycles = {}
+            for length in cycle_lengths:
+                filtered_cycles[length] = [c for c in cycles_extended[length] if all(node in subgraphs[0].nodes() for node in c)]
+            for j, length in enumerate(filtered_cycles):
+                for cycle in filtered_cycles[length]:
+                    if cycle:
+                        color = colors[j % len(colors)]
+                        for node_id in cycle:
+                            for node in net.nodes:
+                                if node['id'] == node_id and 'color' not in node:
+                                    node['color'] = color
+                                    break
+            
+            # Enable physics and arrows
+            net.set_options("""
+            var options = {
+              "physics": {
+                "enabled": true,
+                "barnesHut": {
+                  "gravitationalConstant": -3000,
+                  "springLength": 150
+                }
+              },
+              "edges": {
+                "arrows": {
+                  "to": { "enabled": true, "scaleFactor": 1 }
+                }
+              }
+            }
+            """)
+            
+            st.session_state.extended_overall_html = net.generate_html()
+        else:
+            st.session_state.extended_overall_html = "<p>확장된 전체 관계망에 노드가 없습니다.</p>"
+
         st.session_state.network_run = True
         st.session_state.show_sales_details = [False] * len(st.session_state.htmls)
         st.session_state.show_fraud_analysis = [False] * len(st.session_state.htmls)
@@ -331,10 +470,17 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
     else:
         st.warning("분석할 거래 쌍을 추가해주세요.")
 
-# Display overall graph
-if st.session_state.network_run and st.session_state.overall_html:
-    st.subheader("전체 관계망")
-    html(st.session_state.overall_html, height=600, scrolling=True)
+# Display overall and extended graphs in 1:1 grid
+if st.session_state.network_run and st.session_state.overall_html and st.session_state.extended_overall_html:
+    st.markdown('<div class="graph-container">', unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.subheader("전체 관계망")
+        html(st.session_state.overall_html, height=600, scrolling=True)
+    with col2:
+        st.subheader("확장된 전체 관계망")
+        html(st.session_state.extended_overall_html, height=600, scrolling=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Display subgraphs with fraud analysis details
 if st.session_state.network_run and st.session_state.htmls:
@@ -342,7 +488,9 @@ if st.session_state.network_run and st.session_state.htmls:
         st.subheader(f"관계망 {i}")
         col_graph, col_table = st.columns([3, 2])
         with col_graph:
+            st.markdown('<div class="graph-container">', unsafe_allow_html=True)
             html(html_content, height=600, scrolling=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         with col_table:
             st.write("**거래 상세**")
             col_buttons = st.columns(2)
@@ -380,12 +528,12 @@ if st.session_state.network_run and st.session_state.htmls:
                         if entry['no_biz'] == seller and entry['no_bisocial'] == buyer:
                             # Select specific fields
                             details_data.append({
-                                '판매자 번호 (no_biz)': entry['no_biz'],
-                                '구매자 번호 (no_bisocial)': entry['no_bisocial'],
-                                '거래처명 (nm_trade)': entry.get('nm_trade', 'N/A'),
-                                '계정과목 (nm_acctit)': entry.get('nm_acctit', 'N/A'),
-                                '구분 (ty_gubn)': entry.get('ty_gubn', 'N/A'),
-                                '분개내역 (ct_bungae)': entry.get('ct_bungae', 'N/A')
+                                '판매자 번호': entry['no_biz'],
+                                '구매자 번호': entry['no_bisocial'],
+                                '거래처명': entry.get('nm_trade', 'N/A'),
+                                '계정과목': entry.get('nm_acctit', 'N/A'),
+                                '구분': entry.get('ty_gubn', 'N/A'),
+                                '분개내역': entry.get('ct_bungae', 'N/A')
                             })
                 
                 if details_data:
@@ -396,27 +544,31 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.info("해당 쌍에 대한 상세 데이터가 없습니다.")
             elif st.session_state.show_fraud_analysis[i-1]:
                 items = [
-                    "최근 2년간 해당 거래처와의 거래대금 결제 이력(회수) 여부 (판매자)",
-                    "최근 2년간 해당 거래처와의 거래대금 결제 이력(지급) 여부 (구매자)",
-                    "양사 대표자 동일(이름, 주민번호) 여부",
-                    "양사 대표자 가족 중복 포함 여부",
+                    "최근 2년간 거래대금 결제 이력(회수) 여부 (판매자)",
+                    "최근 2년간 거래대금 결제 이력(지급) 여부 (구매자)",
+                    "양사 대표자 동일 여부",
+                    "양사 대표자 가족 중복 여부",
                     "양사 대표자 종업원 포함 여부",
                     "양사 동일 종업원 존재 여부",
                     "회전거래 업체와 최근 2년간 거래 여부",
                     "폭탄업체와 최근 2년간 거래 여부",
-                    "회전거래 업체여부",
-                    "계약자와 피보험자가 3개 이상인 경우 회전거래가 존재하는지 여부",
-                    "동일 세무대리인으로부터 기장한 이력이 확인되는 경우",
-                    "사업장 주소지 유사성이 확인되는 경우",
-                    "주주 구성의 동일성이 확인되는 경우",
-                    "중간거래상을 통한 거래가 확인되는 경우"
+                    "회전거래 업체 여부",
+                    "계약자와 피보험자가 3개 이상인 경우 회전거래 존재 여부",
+                    "동일 세무대리인 기장 이력 여부",
+                    "사업장 주소지 유사성 여부",
+                    "주주 구성 동일성 여부",
+                    "중간거래상 거래 여부"
                 ]
-                values = [random.choice(['y', 'n']) for _ in items]
+                # For 관계망3 (i=3), always show "사기거래 징후가 보이지 않습니다"
+                if i == 3:
+                    values = ['n'] * len(items)
+                else:
+                    values = [random.choice(['y', 'n']) for _ in items]
                 df = pd.DataFrame({'항목': items, '해당 여부': values})
                 st.dataframe(df, use_container_width=True)
                 if 'y' in values:
                     st.markdown('<p class="fraud-warning">사기거래 징후가 보입니다.</p>', unsafe_allow_html=True)
                 else:
-                    st.write("사기거래 징후가 보이지 않습니다.")
+                    st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
-                st.info("'매출매입 상세' 또는 '사기거래 분석'을 클릭하여 상세를 확인하세요.")
+                st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
