@@ -210,7 +210,7 @@ if 'pairs' not in st.session_state:
 if 'delete_checks' not in st.session_state:
     st.session_state.delete_checks = []
 
-if st.button("사업자번호 추가", key="add_pair"):
+if st.button("사업자번호 조회", key="add_pair"):
     if insured_selections and contractor_selections:
         # Create all possible pairs from selected sellers and buyers
         new_pairs = []
@@ -597,4 +597,5 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
+
 
