@@ -8,73 +8,79 @@ import random
 from pyvis.network import Network
 from collections import defaultdict
 
-# Custom CSS for modern, sleek UI/UX
+# Custom CSS inspired by https://www.coocon.net/main_0001_t5.act
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
     body {
         font-family: 'Inter', 'Noto Sans KR', sans-serif;
-        background-color: #f9fafb;
+        background-color: #FFFFFF;
         font-size: 16px;
         line-height: 1.6;
-        color: #1f2937;
+        color: #666666;
     }
     .stApp {
-        max-width: 1440px;
+        max-width: 1400px;
         margin: 0 auto;
-        background-color: #ffffff;
+        background-color: #FFFFFF;
         border-radius: 12px;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         padding: 40px;
+        transition: all 0.3s ease;
     }
     h1 {
-        color: #1f2937;
+        color: #000000;
         font-size: 2.8em;
         font-weight: 700;
         text-align: center;
         margin-bottom: 1.5em;
     }
     h2 {
-        color: #1f2937;
+        color: #000000;
         font-size: 2.0em;
         font-weight: 600;
         margin-bottom: 1.2em;
     }
     h3 {
-        color: #1f2937;
+        color: #000000;
         font-size: 1.6em;
         font-weight: 500;
         margin-bottom: 1em;
     }
     .stSelectbox, .stTextInput, .stMultiselect {
-        background-color: #f8fafc;
-        border-radius: 8px;
-        padding: 10px;
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        padding: 12px;
         font-size: 1.0em;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    .stSelectbox:hover, .stTextInput:hover, .stMultiselect:hover {
+        border-color: #00AEEF;
+        box-shadow: 0 0 8px rgba(0, 174, 239, 0.3);
     }
     .stButton>button {
-        background: linear-gradient(to right, #60a5fa, #3b82f6);
+        background-color: #00AEEF;
         color: white;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 12px 24px;
         border: none;
         font-size: 1.0em;
         font-weight: 500;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        background: linear-gradient(to right, #3b82f6, #2563eb);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        background-color: #0099CC;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transform: translateY(-1px);
     }
     .stDataFrame {
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
         overflow: hidden;
-        background-color: #ffffff;
+        background-color: #FFFFFF;
     }
     .stDataFrame table {
         width: 100%;
@@ -82,7 +88,7 @@ st.markdown("""
         font-size: 1.0em;
     }
     .stDataFrame th {
-        background: linear-gradient(to right, #3b82f6, #60a5fa);
+        background-color: #00AEEF;
         color: white;
         padding: 14px;
         text-align: left;
@@ -90,21 +96,38 @@ st.markdown("""
     }
     .stDataFrame td {
         padding: 14px;
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e0e0e0;
         font-size: 1.0em;
     }
     .stDataFrame tr:hover {
-        background-color: #f1f5f9;
+        background-color: #f5f7fa;
+        transform: scale(1.02);
+        transition: all 0.2s ease;
     }
     .sidebar .sidebar-content {
         background-color: #1f2937;
         color: white;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 24px;
         font-size: 1.0em;
     }
     .stCheckbox {
         margin: 8px 0;
+    }
+    /* Custom checkbox and multiselect checkmark color */
+    .stCheckbox > div[data-baseweb="checkbox"],
+    .stMultiSelect [role="option"] > div[data-baseweb="checkbox"] {
+        background-color: rgba(0, 174, 239, 0.7) !important;
+        border-color: #00AEEF !important;
+    }
+    .stCheckbox > div[data-baseweb="checkbox"] input:checked ~ div,
+    .stMultiSelect [role="option"] > div[data-baseweb="checkbox"] input:checked ~ div {
+        background-color: #00AEEF !important;
+        border-color: #00AEEF !important;
+    }
+    .stCheckbox > div[data-baseweb="checkbox"] input:checked ~ div:after,
+    .stMultiSelect [role="option"] > div[data-baseweb="checkbox"] input:checked ~ div:after {
+        border-color: white !important;
     }
     .fraud-warning {
         color: #e74c3c;
@@ -112,9 +135,9 @@ st.markdown("""
         font-size: 1.1em;
         background-color: #ffe6e6;
         padding: 12px;
-        border-radius: 8px;
+        border-radius: 12px;
         border: 1px solid #e74c3c;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
     .no-fraud {
@@ -123,9 +146,9 @@ st.markdown("""
         font-size: 1.1em;
         background-color: rgba(220, 252, 231, 0.9);
         padding: 12px;
-        border-radius: 8px;
+        border-radius: 12px;
         border: 1px solid #16a34a;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
     .stMarkdown p {
@@ -133,27 +156,15 @@ st.markdown("""
         line-height: 1.6;
     }
     .graph-container {
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
         padding: 16px;
-        background-color: #ffffff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        background-color: #FFFFFF;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }
     .graph-container:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    /* Custom checkbox and multiselect checkmark color */
-    .stCheckbox > label > div[data-testid="stCheckbox"] > svg,
-    .stMultiSelect [role="option"] [data-testid="stCheckbox"] svg,
-    .stMultiSelect div[data-testid="stMarkDownLabel"] svg {
-        fill: #3b82f6 !important;
-        opacity: 0.7 !important;
-    }
-    .stCheckbox > label > div[data-testid="stCheckbox"] > svg path,
-    .stMultiSelect [role="option"] [data-testid="stCheckbox"] svg path {
-        stroke: #3b82f6 !important;
-        opacity: 0.7 !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -163,8 +174,8 @@ insured_dict = {entry['no_biz']: entry['nm_krcom'] for entry in PARSED_DATA}
 contractor_dict = {entry['no_bisocial']: entry['nm_trade'] for entry in PARSED_DATA}
 
 # Sorted options for selectboxes
-insured_options = sorted([f"{num} - {name} (판매자)" for num, name in insured_dict.items()])
-contractor_options = sorted([f"{num} - {name} (구매자)" for num, name in contractor_dict.items()])
+insured_options = sorted([f"{num} - {name}" for num, name in insured_dict.items()])
+contractor_options = sorted([f"{num} - {name}" for num, name in contractor_dict.items()])
 
 # Set page config for wide layout
 st.set_page_config(layout="wide")
@@ -174,25 +185,21 @@ st.title("사기거래 분석 대시보드")
 
 # Pair Management Section
 st.header("피보험자-계약자 입력")
-
-# Add New Pair Section
-st.subheader("사업자번호 조회 및 선택")
+st.subheader("사업자번호 선택", help="판매자(피보험자)와 구매자(계약자)를 선택하세요.")
 col_select1, col_select2 = st.columns([1, 1])
 
 with col_select1:
     insured_selections = st.multiselect(
-        "판매자 선택",
+        "판매자",
         options=insured_options,
-        key="insured_select",
-        help="판매자(피보험자)를 선택하세요."
+        key="insured_select"
     )
 
 with col_select2:
     contractor_selections = st.multiselect(
-        "구매자 선택",
+        "구매자",
         options=contractor_options,
-        key="contractor_select",
-        help="구매자(계약자)를 선택하세요."
+        key="contractor_select"
     )
 
 # Initialize session state for pairs
@@ -201,16 +208,14 @@ if 'pairs' not in st.session_state:
 if 'delete_checks' not in st.session_state:
     st.session_state.delete_checks = []
 
-if st.button("사업자번호 추가", key="add_pair"):
+if st.button("사업자번호 추가"):
     if insured_selections and contractor_selections:
-        # Create all possible pairs from selected sellers and buyers
         new_pairs = []
         for insured_selection in insured_selections:
             for contractor_selection in contractor_selections:
                 insured_num = insured_selection.split(' - ')[0]
                 contractor_num = contractor_selection.split(' - ')[0]
                 new_pairs.append((insured_num, contractor_num))
-        # Add new pairs to session state
         st.session_state.pairs.extend(new_pairs)
         st.session_state.delete_checks.extend([False] * len(new_pairs))
         st.success(f"{len(new_pairs)}개의 쌍이 추가되었습니다!")
@@ -221,11 +226,9 @@ if st.button("사업자번호 추가", key="add_pair"):
 # Selected Pairs Section
 st.subheader("선택된 사업자번호 조합")
 if st.session_state.pairs:
-    # Ensure delete_checks matches pairs length
     if len(st.session_state.delete_checks) != len(st.session_state.pairs):
         st.session_state.delete_checks = [False] * len(st.session_state.pairs)
 
-    # Create table data with checkboxes
     table_data = []
     for i, (seller, buyer) in enumerate(st.session_state.pairs):
         table_data.append({
@@ -234,28 +237,21 @@ if st.session_state.pairs:
             "구매자": f"{buyer} - {contractor_dict.get(buyer, '알 수 없음')}"
         })
 
-    # Display table with integrated checkboxes
     df = pd.DataFrame(table_data)
     st.dataframe(
         df,
         use_container_width=True,
         column_config={
-            "삭제": st.column_config.CheckboxColumn(
-                "삭제",
-                default=False,
-                help="삭제할 쌍을 선택하세요"
-            ),
+            "삭제": st.column_config.CheckboxColumn("삭제", default=False, help="삭제할 쌍을 선택하세요"),
             "판매자": st.column_config.TextColumn("판매자"),
             "구매자": st.column_config.TextColumn("구매자")
         }
     )
 
-    # Update session state based on table checkbox changes
     for i, row in df.iterrows():
         st.session_state.delete_checks[i] = row["삭제"]
 
-    # Delete button
-    if st.button("선택된 쌍 삭제", key="delete_selected"):
+    if st.button("선택된 쌍 삭제"):
         new_pairs = [pair for i, pair in enumerate(st.session_state.pairs) if not st.session_state.delete_checks[i]]
         st.session_state.pairs = new_pairs
         st.session_state.delete_checks = [False] * len(new_pairs)
@@ -267,14 +263,13 @@ else:
 # Network Analysis Section
 st.header("네트워크 분석")
 cycle_lengths = st.multiselect(
-    "찾을 사이클 길이 선택",
+    "사이클 길이 선택",
     options=[3, 4, 5, 6],
     default=[3],
     key="cycle_lengths",
     help="분석할 사이클 길이를 선택하세요."
 )
 
-# Initialize session state for network analysis results
 if 'network_run' not in st.session_state:
     st.session_state.network_run = False
 if 'htmls' not in st.session_state:
@@ -284,44 +279,34 @@ if 'overall_html' not in st.session_state:
 if 'extended_overall_html' not in st.session_state:
     st.session_state.extended_overall_html = None
 if 'show_sales_details' not in st.session_state:
-    st.session_state.show_sales_details = [False] * 100  # Support multiple subgraphs
+    st.session_state.show_sales_details = [False] * 100
 if 'show_fraud_analysis' not in st.session_state:
-    st.session_state.show_fraud_analysis = [False] * 100  # Support multiple subgraphs
+    st.session_state.show_fraud_analysis = [False] * 100
 
-# Run network analysis
-if st.button("네트워크 분석 실행", key="network_analysis"):
+if st.button("네트워크 분석 실행"):
     if st.session_state.pairs:
-        # Original graph and subgraphs
-        G = nx.DiGraph(st.session_state.pairs)  # Edges from no_biz (seller) to no_bisocial (buyer)
-        # Find all simple cycles and organize by length
+        G = nx.DiGraph(st.session_state.pairs)
         all_cycles = list(nx.simple_cycles(G))
         cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
         st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
 
-        # Compute overall graph (without extended nodes)
         selected_sellers = set(s for s, b in st.session_state.pairs)
         selected_buyers = set(b for s, b in st.session_state.pairs)
         overall_G = nx.DiGraph()
 
-        # Add selected edges
         for s, b in st.session_state.pairs:
             overall_G.add_edge(s, b)
 
-        # Compute cycles for overall
         all_cycles_overall = list(nx.simple_cycles(overall_G))
         cycles_overall = {length: [cycle for cycle in all_cycles_overall if len(cycle) == length] for length in cycle_lengths}
 
-        # Filter the overall graph
         filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(overall_G)
-
-        # Draw overall graph
         subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else overall_G, num_subgraphs=1)
         
         if subgraphs and subgraphs[0].number_of_nodes() > 0:
             net = Network(notebook=False, directed=True, height='600px', width='100%')
             net.from_nx(subgraphs[0])
             
-            # Update node labels with company names
             for node in net.nodes:
                 node_id = node['id']
                 label = insured_dict.get(node_id, contractor_dict.get(node_id, node_id))
@@ -329,7 +314,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 node['size'] = 30
                 node['font'] = {'size': 14}
             
-            # Highlight length 3+ edges
             for edge in net.edges:
                 u, v = edge['from'], edge['to']
                 if (u, v) in length_3_plus_edges:
@@ -339,7 +323,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                     edge['color'] = '#6b7280'
                     edge['width'] = 1
             
-            # Highlight cycles
             colors = ['#f472b6', '#a3e635', '#22d3ee']
             filtered_cycles = {}
             for length in cycle_lengths:
@@ -354,7 +337,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                                     node['color'] = color
                                     break
             
-            # Enable physics and arrows
             net.set_options("""
             var options = {
               "physics": {
@@ -376,14 +358,11 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         else:
             st.session_state.overall_html = "<p>전체 관계망에 노드가 없습니다.</p>"
 
-        # Create extended graph based on filtered overall graph
         extended_overall_G = filtered_graph.copy() if len(filtered_graph.nodes()) > 0 else overall_G.copy()
 
-        # Label dict for arbitrary names
         label_dict = {}
-        shared_groups = defaultdict(list)  # top_node -> list of original nodes
+        shared_groups = defaultdict(list)
 
-        # Add 5 arbitrary buyers (sales) for each selected seller
         for seller in selected_sellers:
             for i in range(1, 6):
                 arbitrary_buyer = f"arbitrary_buyer_{seller}_{i}"
@@ -391,7 +370,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 shared_groups[arbitrary_buyer].append(seller)
                 label_dict[arbitrary_buyer] = f"매출처{i}"
 
-        # Add 5 arbitrary sellers (purchases) for each selected buyer
         for buyer in selected_buyers:
             for i in range(1, 6):
                 arbitrary_seller = f"arbitrary_seller_{buyer}_{i}"
@@ -399,7 +377,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 shared_groups[arbitrary_seller].append(buyer)
                 label_dict[arbitrary_seller] = f"매입처{i}"
 
-        # Assign colors to shared nodes (if shared across multiple originals)
         shared_colors = {}
         color_list = ['#ef4444', '#22c55e', '#3b82f6', '#eab308', '#d946ef', '#14b8a6', '#f97316', '#8b5cf6']
         color_idx = 0
@@ -408,11 +385,9 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 shared_colors[node] = color_list[color_idx % len(color_list)]
                 color_idx += 1
 
-        # Compute cycles for extended overall
         all_cycles_extended = list(nx.simple_cycles(extended_overall_G))
         cycles_extended = {length: [cycle for cycle in all_cycles_extended if len(cycle) == length] for length in cycle_lengths}
 
-        # Draw extended overall graph
         filtered_graph_ext, length_3_plus_edges_ext = ngc.filter_paths_of_length_3_or_more(extended_overall_G)
         subgraphs_ext = ngc.split_into_subgraphs(filtered_graph_ext if len(filtered_graph_ext.nodes()) > 0 else extended_overall_G, num_subgraphs=1)
         
@@ -420,7 +395,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
             net = Network(notebook=False, directed=True, height='600px', width='100%')
             net.from_nx(subgraphs_ext[0])
             
-            # Update node labels with company names or arbitrary
             for node in net.nodes:
                 node_id = node['id']
                 label = label_dict.get(node_id, insured_dict.get(node_id, contractor_dict.get(node_id, node_id)))
@@ -430,7 +404,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                 if node_id in shared_colors:
                     node['color'] = shared_colors[node_id]
             
-            # Highlight length 3+ edges
             for edge in net.edges:
                 u, v = edge['from'], edge['to']
                 if (u, v) in length_3_plus_edges_ext:
@@ -440,7 +413,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                     edge['color'] = '#6b7280'
                     edge['width'] = 1
             
-            # Highlight cycles (apply only if no shared color)
             colors = ['#f472b6', '#a3e635', '#22d3ee']
             filtered_cycles = {}
             for length in cycle_lengths:
@@ -455,7 +427,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                                     node['color'] = color
                                     break
             
-            # Enable physics and arrows
             net.set_options("""
             var options = {
               "physics": {
@@ -484,7 +455,6 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
     else:
         st.warning("분석할 거래 쌍을 추가해주세요.")
 
-# Display overall and extended graphs in 1:1 grid
 if st.session_state.network_run and st.session_state.overall_html and st.session_state.extended_overall_html:
     st.markdown('<div class="graph-container">', unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
@@ -496,7 +466,6 @@ if st.session_state.network_run and st.session_state.overall_html and st.session
         html(st.session_state.extended_overall_html, height=600, scrolling=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Display subgraphs with fraud analysis details
 if st.session_state.network_run and st.session_state.htmls:
     for i, html_content in enumerate(st.session_state.htmls, 1):
         st.subheader(f"관계망 {i}")
@@ -519,14 +488,11 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.session_state.show_sales_details[i-1] = False
                     st.rerun()
 
-            # Get nodes in cycles of the desired length
             G = nx.DiGraph(st.session_state.pairs)
             all_cycles = list(nx.simple_cycles(G))
             cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
             subgraph_nodes = set()
-            # Use all pairs if no cycles are found
             subgraph_pairs = st.session_state.pairs
-            # If cycles exist, filter pairs by cycle nodes
             target_length = cycle_lengths[min(i-1, len(cycle_lengths)-1)] if cycle_lengths else None
             if target_length in cycles and cycles[target_length]:
                 for cycle in cycles[target_length]:
@@ -535,12 +501,10 @@ if st.session_state.network_run and st.session_state.htmls:
                                  if seller in subgraph_nodes or buyer in subgraph_nodes]
             
             if st.session_state.show_sales_details[i-1]:
-                # Retrieve PARSED_DATA entries matching the pairs
                 details_data = []
                 for seller, buyer in subgraph_pairs:
                     for entry in PARSED_DATA:
                         if entry['no_biz'] == seller and entry['no_bisocial'] == buyer:
-                            # Select specific fields
                             details_data.append({
                                 '판매자 번호': entry['no_biz'],
                                 '구매자 번호': entry['no_bisocial'],
@@ -551,7 +515,6 @@ if st.session_state.network_run and st.session_state.htmls:
                             })
                 
                 if details_data:
-                    # Convert to DataFrame and display selected fields
                     df = pd.DataFrame(details_data)
                     st.dataframe(df, use_container_width=True)
                 else:
@@ -573,7 +536,6 @@ if st.session_state.network_run and st.session_state.htmls:
                     "주주 구성 동일성 여부",
                     "중간거래상 거래 여부"
                 ]
-                # For 관계망3 (i=3), always show "사기거래 징후가 보이지 않습니다"
                 if i == 3:
                     values = ['n'] * len(items)
                 else:
