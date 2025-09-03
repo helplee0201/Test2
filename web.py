@@ -5,7 +5,7 @@ import network_graph_cycles as ngc
 from streamlit.components.v1 import html
 import pandas as pd
 import random
-from pyvis.network import Network  # 추가된 임포트 문
+from pyvis.network import Network
 from collections import defaultdict
 
 # Custom CSS for wider, modern dashboard styling with adjusted font sizes and centered title
@@ -29,7 +29,7 @@ st.markdown("""
     h1 {
         color: #2c3e50;
         font-size: 2.5em;
-        text-align: center; /* Center align the main title */
+        text-align: center;
     }
     h2 {
         color: #2c3e50;
@@ -45,7 +45,7 @@ st.markdown("""
         padding: 8px;
     }
     .stButton>button {
-        background-color: #e74c3c; /* Red color for fraud analysis button */
+        background-color: #e74c3c;
         color: white;
         border-radius: 5px;
         padding: 12px 24px;
@@ -53,7 +53,7 @@ st.markdown("""
         transition: background-color 0.2s;
     }
     .stButton>button:hover {
-        background-color: #c0392b; /* Darker red on hover */
+        background-color: #c0392b;
     }
     .stDataFrame {
         border: 1px solid #e0e0e0;
@@ -97,11 +97,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-# Parse the data with amounts
-df_parsed = pd.DataFrame(PARSED_DATA)
-df_parsed['mn_bungae'] = df_parsed['mn_bungae'].str.replace(',', '')
-df_parsed['amount'] = pd.to_numeric(df_parsed['mn_bungae'], errors='coerce').fillna(0)
 
 # Extract unique seller (no_biz) and buyer (no_bisocial) data
 insured_dict = {entry['no_biz']: entry['nm_krcom'] for entry in PARSED_DATA}
@@ -227,6 +222,10 @@ if 'show_sales_details' not in st.session_state:
     st.session_state.show_sales_details = [False] * 100  # Support multiple subgraphs
 if 'show_fraud_analysis' not in st.session_state:
     st.session_state.show_fraud_analysis = [False] * 100  # Support multiple subgraphs
+if 'extended_overall_G' not in st.session_state:
+    st.session_state.extended_overall_G = None
+if 'extended_overall_html' not in st.session_state:
+    st.session_state.extended_overall_html = None
 
 # Run network analysis
 if st.button("네트워크 분석 실행", key="network_analysis"):
@@ -238,7 +237,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}
         st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
 
-        # Compute overall graph with top 5 sales/purchases
+        # Compute overall graph (without extended nodes)
         selected_sellers = set(s for s, b in st.session_state.pairs)
         selected_buyers = set(b for s, b in st.session_state.pairs)
         overall_G = nx.DiGraph()
@@ -247,48 +246,11 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         for s, b in st.session_state.pairs:
             overall_G.add_edge(s, b)
 
-        # Label dict for arbitrary names
-        label_dict = {}
-        sales_counter = 1
-        purchase_counter = 1
-
-        # Track shared top nodes for coloring
-        shared_groups = defaultdict(list)  # top_node -> list of original nodes connected to it
-
-        # Add top 5 buyers for each selected seller (매출처)
-        for seller in selected_sellers:
-            buyer_sums = df_parsed[df_parsed['no_biz'] == seller].groupby('no_bisocial')['amount'].sum().nlargest(5)
-            for buyer in buyer_sums.index:
-                overall_G.add_edge(seller, buyer)
-                shared_groups[buyer].append(seller)
-                if buyer not in insured_dict and buyer not in contractor_dict:
-                    label_dict[buyer] = f"매출{sales_counter}"
-                    sales_counter += 1
-
-        # Add top 5 sellers for each selected buyer (매입처)
-        for buyer in selected_buyers:
-            seller_sums = df_parsed[df_parsed['no_bisocial'] == buyer].groupby('no_biz')['amount'].sum().nlargest(5)
-            for seller in seller_sums.index:
-                overall_G.add_edge(seller, buyer)
-                shared_groups[seller].append(buyer)
-                if seller not in insured_dict and seller not in contractor_dict:
-                    label_dict[seller] = f"매입{purchase_counter}"
-                    purchase_counter += 1
-
-        # Assign colors to shared nodes (shared if len >1)
-        shared_colors = {}
-        color_list = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF']  # red, green, blue, yellow, magenta, cyan
-        color_idx = 0
-        for node, originals in shared_groups.items():
-            if len(originals) > 1:  # shared
-                shared_colors[node] = color_list[color_idx % len(color_list)]
-                color_idx += 1
-
         # Compute cycles for overall
         all_cycles_overall = list(nx.simple_cycles(overall_G))
         cycles_overall = {length: [cycle for cycle in all_cycles_overall if len(cycle) == length] for length in cycle_lengths}
 
-        # Draw overall graph (replicating draw_graph logic with num_subgraphs=1)
+        # Draw overall graph
         filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(overall_G)
         subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else overall_G, num_subgraphs=1)
         
@@ -296,16 +258,13 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
             net = Network(notebook=False, directed=True, height='600px', width='100%')
             net.from_nx(subgraphs[0])
             
-            # Update node labels with company names or arbitrary
+            # Update node labels with company names
             for node in net.nodes:
                 node_id = node['id']
-                label = label_dict.get(node_id, insured_dict.get(node_id, contractor_dict.get(node_id, node_id)))
+                label = insured_dict.get(node_id, contractor_dict.get(node_id, node_id))
                 node['label'] = label
                 node['size'] = 30
                 node['font'] = {'size': 14}
-                # Apply shared color if applicable
-                if node_id in shared_colors:
-                    node['color'] = shared_colors[node_id]
             
             # Highlight length 3+ edges
             for edge in net.edges:
@@ -329,8 +288,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
                         for node_id in cycle:
                             for node in net.nodes:
                                 if node['id'] == node_id:
-                                    if 'color' not in node:  # Avoid overwriting shared color
-                                        node['color'] = color
+                                    node['color'] = color
                                     break
             
             # Enable physics and arrows
@@ -355,6 +313,10 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         else:
             st.session_state.overall_html = "<p>전체 관계망에 노드가 없습니다.</p>"
 
+        # Reset extended graph
+        st.session_state.extended_overall_G = None
+        st.session_state.extended_overall_html = None
+
         st.session_state.network_run = True
         st.session_state.show_sales_details = [False] * len(st.session_state.htmls)
         st.session_state.show_fraud_analysis = [False] * len(st.session_state.htmls)
@@ -362,10 +324,131 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
     else:
         st.warning("분석할 거래 쌍을 추가해주세요.")
 
+# Button for adding arbitrary sales/purchase nodes
+if st.session_state.network_run:
+    if st.button("매출-매입처 조회", key="add_arbitrary_nodes"):
+        if st.session_state.overall_html:
+            # Start from the original overall_G
+            selected_sellers = set(s for s, b in st.session_state.pairs)
+            selected_buyers = set(b for s, b in st.session_state.pairs)
+            extended_overall_G = nx.DiGraph()
+
+            # Add original edges
+            for s, b in st.session_state.pairs:
+                extended_overall_G.add_edge(s, b)
+
+            # Label dict for arbitrary names
+            label_dict = {}
+            shared_groups = defaultdict(list)  # top_node -> list of original nodes
+
+            # Add 5 arbitrary buyers (sales) for each selected seller
+            for seller in selected_sellers:
+                for i in range(1, 6):
+                    arbitrary_buyer = f"arbitrary_buyer_{seller}_{i}"
+                    extended_overall_G.add_edge(seller, arbitrary_buyer)
+                    shared_groups[arbitrary_buyer].append(seller)
+                    label_dict[arbitrary_buyer] = f"매출{i}"
+
+            # Add 5 arbitrary sellers (purchases) for each selected buyer
+            for buyer in selected_buyers:
+                for i in range(1, 6):
+                    arbitrary_seller = f"arbitrary_seller_{buyer}_{i}"
+                    extended_overall_G.add_edge(arbitrary_seller, buyer)
+                    shared_groups[arbitrary_seller].append(buyer)
+                    label_dict[arbitrary_seller] = f"매입{i}"
+
+            # Assign colors to shared nodes (if shared across multiple originals)
+            shared_colors = {}
+            color_list = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080']
+            color_idx = 0
+            for node, originals in shared_groups.items():
+                if len(originals) > 1:
+                    shared_colors[node] = color_list[color_idx % len(color_list)]
+                    color_idx += 1
+
+            # Compute cycles for extended overall
+            all_cycles_extended = list(nx.simple_cycles(extended_overall_G))
+            cycles_extended = {length: [cycle for cycle in all_cycles_extended if len(cycle) == length] for length in cycle_lengths}
+
+            # Draw extended overall graph
+            filtered_graph, length_3_plus_edges = ngc.filter_paths_of_length_3_or_more(extended_overall_G)
+            subgraphs = ngc.split_into_subgraphs(filtered_graph if len(filtered_graph.nodes()) > 0 else extended_overall_G, num_subgraphs=1)
+            
+            if subgraphs and subgraphs[0].number_of_nodes() > 0:
+                net = Network(notebook=False, directed=True, height='600px', width='100%')
+                net.from_nx(subgraphs[0])
+                
+                # Update node labels with company names or arbitrary
+                for node in net.nodes:
+                    node_id = node['id']
+                    label = label_dict.get(node_id, insured_dict.get(node_id, contractor_dict.get(node_id, node_id)))
+                    node['label'] = label
+                    node['size'] = 30
+                    node['font'] = {'size': 14}
+                    if node_id in shared_colors:
+                        node['color'] = shared_colors[node_id]
+                
+                # Highlight length 3+ edges
+                for edge in net.edges:
+                    u, v = edge['from'], edge['to']
+                    if (u, v) in length_3_plus_edges:
+                        edge['color'] = 'red'
+                        edge['width'] = 3
+                    else:
+                        edge['color'] = 'gray'
+                        edge['width'] = 1
+                
+                # Highlight cycles (apply only if no shared color)
+                colors = ['pink', 'lime', 'cyan']
+                filtered_cycles = {}
+                for length in cycle_lengths:
+                    filtered_cycles[length] = [c for c in cycles_extended[length] if all(node in subgraphs[0].nodes() for node in c)]
+                for j, length in enumerate(filtered_cycles):
+                    for cycle in filtered_cycles[length]:
+                        if cycle:
+                            color = colors[j % len(colors)]
+                            for node_id in cycle:
+                                for node in net.nodes:
+                                    if node['id'] == node_id and 'color' not in node:
+                                        node['color'] = color
+                                        break
+                
+                # Enable physics and arrows
+                net.set_options("""
+                var options = {
+                  "physics": {
+                    "enabled": true,
+                    "barnesHut": {
+                      "gravitationalConstant": -3000,
+                      "springLength": 150
+                    }
+                  },
+                  "edges": {
+                    "arrows": {
+                      "to": { "enabled": true, "scaleFactor": 1 }
+                    }
+                  }
+                }
+                """)
+                
+                st.session_state.extended_overall_html = net.generate_html()
+            else:
+                st.session_state.extended_overall_html = "<p>확장된 전체 관계망에 노드가 없습니다.</p>"
+
+            st.session_state.extended_overall_G = extended_overall_G
+            st.rerun()
+        else:
+            st.warning("먼저 네트워크 분석을 실행해주세요.")
+
 # Display overall graph
 if st.session_state.network_run and st.session_state.overall_html:
     st.subheader("전체 관계망")
     html(st.session_state.overall_html, height=600, scrolling=True)
+
+# Display extended overall graph if available
+if st.session_state.extended_overall_html:
+    st.subheader("확장된 전체 관계망 (임의 매출/매입 노드 추가)")
+    html(st.session_state.extended_overall_html, height=600, scrolling=True)
 
 # Display subgraphs with fraud analysis details
 if st.session_state.network_run and st.session_state.htmls:
