@@ -39,13 +39,13 @@ st.markdown("""
     h2 {
         color: #000000;
         font-size: 2.0em;
-        font-weight: 600;
+        font-weight: 400;
         margin-bottom: 1.2em;
     }
     h3 {
         color: #000000;
         font-size: 1.6em;
-        font-weight: 500;
+        font-weight: 200;
         margin-bottom: 1em;
     }
     .stSelectbox, .stTextInput, .stMultiselect {
@@ -594,4 +594,5 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
+
 
