@@ -192,14 +192,14 @@ col_select1, col_select2 = st.columns([1, 1])
 
 with col_select1:
     insured_selections = st.multiselect(
-        "판매자 선택 (판매자)",
+        "피보험자",
         options=insured_options,
         key="insured_select"
     )
 
 with col_select2:
     contractor_selections = st.multiselect(
-        "구매자 선택 (구매자)",
+        "계약자",
         options=contractor_options,
         key="contractor_select"
     )
@@ -594,6 +594,7 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
+
 
 
 
