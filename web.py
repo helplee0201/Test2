@@ -39,13 +39,13 @@ st.markdown("""
     h2 {
         color: #000000;
         font-size: 2.0em;
-        font-weight: 400;
+        font-weight: 600;
         margin-bottom: 1.2em;
     }
     h3 {
         color: #000000;
         font-size: 1.6em;
-        font-weight: 200;
+        font-weight: 500;
         margin-bottom: 1em;
     }
     .stSelectbox, .stTextInput, .stMultiselect {
@@ -174,32 +174,32 @@ insured_dict = {entry['no_biz']: entry['nm_krcom'] for entry in PARSED_DATA}
 contractor_dict = {entry['no_bisocial']: entry['nm_trade'] for entry in PARSED_DATA}
 
 # Sorted options for selectboxes
-insured_options = sorted([f"{num} - {name} (피보험자)" for num, name in insured_dict.items()])
-contractor_options = sorted([f"{num} - {name} (계약자)" for num, name in contractor_dict.items()])
+insured_options = sorted([f"{num} - {name} (판매자)" for num, name in insured_dict.items()])
+contractor_options = sorted([f"{num} - {name} (구매자)" for num, name in contractor_dict.items()])
 
 # Set page config for wide layout
 st.set_page_config(layout="wide")
 
 # App title
-st.title("사기거래 탐지 프로세스")
+st.title("사기거래 분석 대시보드")
 
 # Pair Management Section
-st.header("")
+st.header("피보험자-계약자 입력")
 
 # Add New Pair Section
-st.subheader("")
+st.subheader("사업자번호 조회 및 선택")
 col_select1, col_select2 = st.columns([1, 1])
 
 with col_select1:
     insured_selections = st.multiselect(
-        "피보험자",
+        "판매자 선택 (판매자)",
         options=insured_options,
         key="insured_select"
     )
 
 with col_select2:
     contractor_selections = st.multiselect(
-        "계약자",
+        "구매자 선택 (구매자)",
         options=contractor_options,
         key="contractor_select"
     )
@@ -227,8 +227,8 @@ if st.button("사업자번호 추가", key="add_pair"):
     else:
         st.warning("판매자와 구매자를 하나 이상 선택해주세요.")
 
-#Selected Pairs Section
-st.subheader("")
+# Selected Pairs Section
+st.subheader("선택된 사업자번호 조합")
 if st.session_state.pairs:
     # Ensure delete_checks matches pairs length
     if len(st.session_state.delete_checks) != len(st.session_state.pairs):
@@ -273,8 +273,8 @@ if st.session_state.pairs:
 else:
     st.info("아직 쌍이 추가되지 않았습니다.")
 
-#Network Analysis Section
-st.header("")
+# Network Analysis Section
+st.header("네트워크 분석을 실행하는 영역")
 cycle_lengths = st.multiselect(
     "찾을 사이클 길이 선택",
     options=[3, 4, 5, 6],
@@ -303,7 +303,7 @@ if st.button("네트워크 분석 실행", key="network_analysis"):
         G = nx.DiGraph(st.session_state.pairs)  # Edges from no_biz (seller) to no_bisocial (buyer)
         # Find all simple cycles and organize by length
         all_cycles = list(nx.simple_cycles(G))
-        cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}  # Fixed: lengths to cycle_lengths
+        cycles = {length: [cycle for cycle in all_cycles if len(cycle) == length] for length in cycle_lengths}  # Corrected: lengths to cycle_lengths
         st.session_state.htmls = ngc.draw_graph(G, cycles, cycle_lengths, insured_dict, contractor_dict)
 
         # Compute overall graph (without extended nodes)
@@ -561,7 +561,7 @@ if st.session_state.network_run and st.session_state.htmls:
                 if details_data:
                     # Convert to DataFrame and display selected fields
                     df = pd.DataFrame(details_data)
-                    st.dataframe(df, use_container_width=True)
+                    st.dataframe(df, use_container_width=True, hide_index=True)  # Added hide_index to avoid header issues
                 else:
                     st.info("해당 쌍에 대한 상세 데이터가 없습니다.")
             elif st.session_state.show_fraud_analysis[i-1]:
@@ -586,20 +586,14 @@ if st.session_state.network_run and st.session_state.htmls:
                     values = ['n'] * len(items)
                 else:
                     values = [random.choice(['y', 'n']) for _ in items]
-                df = pd.DataFrame({'항목': items, '해당 여부': values})
-                st.dataframe(df, use_container_width=True)
+                try:
+                    df = pd.DataFrame({'항목': items, '해당 여부': values})
+                    st.dataframe(df, use_container_width=True, hide_index=True)  # Added hide_index to avoid header issues
+                except Exception as e:
+                    st.error(f"데이터프레임 렌더링 오류: {str(e)}")
                 if 'y' in values:
                     st.markdown('<p class="fraud-warning">사기거래 징후가 보입니다.</p>', unsafe_allow_html=True)
                 else:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
-
-
-
-
-
-
-
-
-
