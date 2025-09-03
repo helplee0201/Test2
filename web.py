@@ -107,13 +107,13 @@ st.markdown("""
         margin: 8px 0;
     }
     .fraud-warning {
-        color: #3b82f6;
+        color: #e74c3c;
         font-weight: 600;
         font-size: 1.1em;
-        background-color: rgba(147, 197, 253, 0.7);
+        background-color: #ffe6e6;
         padding: 12px;
         border-radius: 8px;
-        border: 1px solid #3b82f6;
+        border: 1px solid #e74c3c;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
@@ -142,6 +142,18 @@ st.markdown("""
     }
     .graph-container:hover {
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    /* Custom checkbox and multiselect checkmark color */
+    .stCheckbox > label > div[data-testid="stCheckbox"] > svg,
+    .stMultiSelect [role="option"] [data-testid="stCheckbox"] svg,
+    .stMultiSelect div[data-testid="stMarkDownLabel"] svg {
+        fill: #3b82f6 !important;
+        opacity: 0.7 !important;
+    }
+    .stCheckbox > label > div[data-testid="stCheckbox"] > svg path,
+    .stMultiSelect [role="option"] [data-testid="stCheckbox"] svg path {
+        stroke: #3b82f6 !important;
+        opacity: 0.7 !important;
     }
 </style>
 """, unsafe_allow_html=True)
