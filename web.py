@@ -181,7 +181,7 @@ contractor_options = sorted([f"{num} - {name} (구매자)" for num, name in cont
 st.set_page_config(layout="wide")
 
 # App title
-st.title("사기거래 분석 대시보드")
+st.title("사기거래 탐지 프로세스")
 
 # # Pair Management Section
 # st.header("피보험자-계약자 입력")
@@ -274,7 +274,7 @@ else:
     st.info("아직 쌍이 추가되지 않았습니다.")
 
 # Network Analysis Section
-st.header("네트워크 분석을 실행하는 영역")
+# st.header("네트워크 분석을 실행하는 영역")
 cycle_lengths = st.multiselect(
     "찾을 사이클 길이 선택",
     options=[3, 4, 5, 6],
@@ -594,6 +594,7 @@ if st.session_state.network_run and st.session_state.htmls:
                     st.markdown('<p class="no-fraud">사기거래 징후가 보이지 않습니다.</p>', unsafe_allow_html=True)
             else:
                 st.info("‘매출매입 상세’ 또는 ‘사기거래 분석’을 클릭하여 상세 정보를 확인하세요.")
+
 
 
 
